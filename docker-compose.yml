@@ -1,0 +1,57 @@
+version: '3'
+services:
+  postgres:
+    build: ./book_database
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: testPass
+      POSTGRES_USER: postgres
+    healthcheck:
+      test: "pg_isready -q -U postgres"
+    networks:
+      dbnetwork:
+        ipv4_address: 10.0.0.11
+    volumes:
+      - ./book_database:/book_database
+      
+  
+  book_api:
+    build: ./book_api
+    restart: always
+    environment:
+      POSTGRES_HOST: postgres:testPass@postgres:4000
+    ports:
+      - 8000:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      dbnetwork:
+        ipv4_address: 10.0.0.12
+    volumes:
+      - ./book_api:/src/app
+    
+  book_react:
+    build: ./book_react
+    restart: always
+    ports:
+      - 8001:3000
+    #depends_on:
+    #  book_api:
+    #    condition: service_healthy
+    # networks:
+    #   dbnetwork:
+    #     ipv4_address: 10.0.0.13
+    volumes:
+      - ./book_react:/src/app
+
+          
+networks:
+  dbnetwork:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.0.0.0/16
+          gateway: 10.0.0.1
